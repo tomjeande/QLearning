@@ -19,9 +19,11 @@ compile_commands.json
 core
 vgcore.*
 
-# Editeurs / OS
+# Editors / OS
 .vscode/
 .idea/
 *.swp
 .DS_Store
 
+# Others
+results/
