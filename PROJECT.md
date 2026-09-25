@@ -70,10 +70,28 @@ Chaque jalon est accompagné de son critère de validation (« Fait quand »).
       conditions de convergence).
 - [x] Décisions d'architecture arrêtées (classes, responsabilités, build, tests).
       Voir « Architecture v1 » dans « Décisions prises ».
-- [ ] Structure de fichiers cible écrite dans ce document.
-      Fait quand : l'arborescence (include/, src/, tests/, scripts/,
-      CMakeLists.txt) figure dans ce fichier et un projet CMake vide compile
-      avec un test GoogleTest trivial qui passe.
+- [x] Structure de fichiers cible écrite dans ce document + squelette CMake
+      qui compile. Validé : `ctest` 2/2 (Types.NumActionsIsFour,
+      Types.ActionValuesMatchQTableColumns), `./build/train` affiche 4.
+      Arborescence :
+      ```
+      CMakeLists.txt
+      include/qlearning/  types.hpp grid_world.hpp qlearning_agent.hpp
+                          trainer.hpp csv_logger.hpp render.hpp
+      src/                grid_world.cpp qlearning_agent.cpp trainer.cpp
+                          csv_logger.cpp render.cpp
+      apps/train_main.cpp
+      tests/              test_types.cpp test_grid_world.cpp test_agent.cpp
+                          (seul test_types.cpp est dans unit_tests pour
+                          l'instant ; ajouter les autres quand ils contiennent
+                          des tests)
+      scripts/analyze.py
+      results/            (gitignoré)
+      ```
+      Targets CMake : `qlearning_core` (STATIC, include/ en PUBLIC),
+      `train`, `unit_tests` (GoogleTest v1.18.0 via FetchContent,
+      `gtest_discover_tests`). Fichiers nommés `qlearning_agent.*` (sans
+      underscore entre q et learning).
 - [ ] Environnement gridworld implémenté et testé (reset/step, récompenses,
       obstacles, état terminal).
       Fait quand : tests unitaires verts sur reset (retour à l'état initial),
@@ -185,15 +203,35 @@ comparaison avec SARSA, obstacles terminaux (variante « cliff »).
   quasiment d'apprendre). Conséquence pour l'architecture : l'agent doit
   maintenir un compteur de visites par paire (s,a).
 
+- CMake découvert pendant ce projet (apprenant non familier). Points
+  expliqués : modèle par targets, visibilité PRIVATE/PUBLIC/INTERFACE,
+  séquence configure (`cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug`) ->
+  build (`cmake --build build -j`) -> test (`ctest --test-dir build
+  --output-on-failure`). Erreurs rencontrées : lancer ctest sans avoir
+  configuré/compilé (build/ inexistant) ; option mal tapée
+  (`--test-build` au lieu de `--test-dir`, diagnostic : la ligne
+  « Test project » montre le dossier réellement utilisé).
+- Erreurs C++ de syntaxe rencontrées : `int main{` sans parenthèses (lu
+  comme une variable), symbole non qualifié hors namespace
+  (`qlearning::kNumActions`), header `<gtest/test.h>` au lieu de
+  `<gtest/gtest.h>`.
+- Convention GoogleTest retenue : attendu en premier dans EXPECT_EQ, une
+  assertion par valeur, pas de `_` dans les noms de suite/test, messages
+  d'assertion qui expliquent l'enjeu plutôt que de paraphraser.
+
 ## Points de blocage en cours
-- (aucun pour l'instant)
+- Dette mineure CMake, non bloquante : liste de warnings dupliquée sur les
+  3 targets (à factoriser dans une target INTERFACE `qlearning_warnings`
+  liée en PRIVATE) ; warning `DOWNLOAD_EXTRACT_TIMESTAMP` à faire taire
+  dans `FetchContent_Declare`.
+- Dossier `Testing/` parasite créé à la racine par un ctest lancé au mauvais
+  endroit : à supprimer (ne pas committer).
 
 ## Prochaine étape prévue
-1. Squelette du projet (guide fourni) : arborescence include/qlearning,
-   src, apps, tests, scripts ; CMakeLists.txt avec bibliothèque
-   `qlearning_core`, exécutable `train`, `unit_tests` via FetchContent
-   GoogleTest + gtest_discover_tests ; un test trivial sur `types.hpp`.
-   Fait quand : `cmake -S . -B build && cmake --build build && ctest
-   --test-dir build` passe (1/1). Reporter l'arborescence ici ensuite.
-2. Guide d'implémentation de `GridWorld`, implémentation par l'apprenant,
-   revue de code par le tuteur.
+1. Commit du squelette (message rédigé par l'apprenant), après suppression
+   de `Testing/` et idéalement la factorisation des warnings.
+2. `GridWorld` : question d'avis posée à l'apprenant sur la conception des
+   récompenses (rôle de -1 par pas vs 0 par pas, interaction avec gamma),
+   puis correction, puis guide d'implémentation (GridConfig, reset/step,
+   stateIndex/positionOf, isBlocked, troncature) et tests
+   test_grid_world.cpp, puis revue de code.
